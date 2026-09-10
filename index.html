@@ -1572,34 +1572,38 @@ function generateDutyPDF(){
   doc.text('FORMAT OF DUTY CERTIFICATE', 105, y, {align:'center'});
   y += DOUBLE_LINE_HEIGHT;
 
+  // The text below this heading uses 1.25 line spacing (tighter than the
+  // 1.5 used elsewhere in the document).
+  const LINE_HEIGHT_125 = RUNNING * 1.25 * 0.3528;
+
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   const certifyParagraph = `This is to certify that  ${examinerName}   Designation :  ${designation}   of Institute :  ${examinerInstitute}   Instt.code number  ${examinerCode}`;
   const certifyLines = doc.splitTextToSize(certifyParagraph, PARA_WIDTH);
-  ensureSpace(certifyLines.length*LINE_HEIGHT + 6);
+  ensureSpace(certifyLines.length*LINE_HEIGHT_125 + 6);
   doc.text(certifyParagraph, LEFT, y, {maxWidth: PARA_WIDTH, align: 'justify'});
-  y += certifyLines.length*LINE_HEIGHT;
+  y += certifyLines.length*LINE_HEIGHT_125;
 
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   const dutyParagraph = `has attended this office in respect of official assignment of MSBTE as per MSBTE / RBTE / Polytechnic office order no.  ${orderNo}  Dated  ${formatDate(orderDate)}  and worked as external examiner from  ${formatTime(fromTime)}  of date  ${formatDate(fromDate)}  To  ${formatTime(toTime)}  of date  ${formatDate(toDate)}`;
   const dutyLines = doc.splitTextToSize(dutyParagraph, PARA_WIDTH);
-  ensureSpace(dutyLines.length*LINE_HEIGHT + 6);
+  ensureSpace(dutyLines.length*LINE_HEIGHT_125 + 6);
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   doc.text(dutyParagraph, LEFT, y, {maxWidth: PARA_WIDTH, align: 'justify'});
-  y += dutyLines.length*LINE_HEIGHT;
+  y += dutyLines.length*LINE_HEIGHT_125;
 
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   ensureSpace(14);
   writeField('Place :', place, LEFT, y);
-  y += LINE_HEIGHT;
+  y += LINE_HEIGHT_125;
   writeField('Date :', formatDate(date), LEFT, y);
-  y += LINE_HEIGHT;
+  y += LINE_HEIGHT_125;
 
   // The closing signature block must never be split or clipped — if there
   // isn't room for both lines above the bottom margin, move it to a new page.
   ensureSpace(12);
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   doc.text('Officer-in-charge / Head of the Institute', RIGHT, y, {align:'right'});
-  y += LINE_HEIGHT;
+  y += LINE_HEIGHT_125;
   doc.text('(Signature and seal of Institut)', RIGHT, y, {align:'right'});
 
   doc.save(`Duty_Certificate_Form14_${examinerName.replace(/\s+/g,'_')}.pdf`);
