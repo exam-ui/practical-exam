@@ -1471,6 +1471,63 @@ function generateDutyPDF(){
     return x + labelW + valueW;
   }
 
+  // Wraps {text, bold} segments into lines that fit maxWidth, accounting for
+  // each word's real width under its own font weight (bold words are wider
+  // than normal ones, so this must be measured per-word, not estimated).
+  // Returns an array of lines (each line = array of {text, bold} words) —
+  // call this first to know exactly how many lines you'll need (for
+  // ensureSpace/y-advancement) before actually drawing anything.
+  function wrapMixedWords(segments, maxWidth){
+    const words = [];
+    segments.forEach(seg=>{
+      String(seg.text).trim().split(/\s+/).forEach(w=>{ if(w) words.push({text:w, bold:!!seg.bold}); });
+    });
+    doc.setFontSize(RUNNING);
+    doc.setFont('times','normal');
+    const spaceWidth = doc.getTextWidth(' ');
+    function wordWidth(w){ doc.setFont('times', w.bold?'bold':'normal'); return doc.getTextWidth(w.text); }
+
+    const lines = [];
+    let line = [], lineW = 0;
+    words.forEach(w=>{
+      const ww = wordWidth(w);
+      const newW = line.length===0 ? ww : lineW + spaceWidth + ww;
+      if(line.length>0 && newW > maxWidth){
+        lines.push(line);
+        line = [w]; lineW = ww;
+      } else {
+        line.push(w); lineW = newW;
+      }
+    });
+    if(line.length) lines.push(line);
+    doc.setFont('times','normal');
+    return lines;
+  }
+
+  // Draws pre-wrapped lines (from wrapMixedWords) fully justified — non-last
+  // lines stretch to fill maxWidth, the last line stays naturally
+  // left-aligned — with each word in its own bold/normal weight.
+  function drawJustifiedLines(lines, x, yStart, maxWidth, lineHeight){
+    doc.setFontSize(RUNNING);
+    const spaceWidth = (function(){ doc.setFont('times','normal'); return doc.getTextWidth(' '); })();
+    function wordWidth(w){ doc.setFont('times', w.bold?'bold':'normal'); return doc.getTextWidth(w.text); }
+    let y = yStart;
+    lines.forEach((ln, idx)=>{
+      const isLast = idx === lines.length-1;
+      const widths = ln.map(wordWidth);
+      const wordsTotal = widths.reduce((a,b)=>a+b,0);
+      const gap = (!isLast && ln.length>1) ? (maxWidth - wordsTotal) / (ln.length-1) : spaceWidth;
+      let cx = x;
+      ln.forEach((w,i)=>{
+        doc.setFont('times', w.bold?'bold':'normal');
+        doc.text(w.text, cx, y);
+        cx += widths[i] + gap;
+      });
+      y += lineHeight;
+    });
+    doc.setFont('times','normal');
+  }
+
   // If the next block (needed mm tall) won't fit above the bottom margin,
   // start a fresh page instead of letting it run off/get clipped.
   function ensureSpace(neededMM){
@@ -1572,38 +1629,55 @@ function generateDutyPDF(){
   doc.text('FORMAT OF DUTY CERTIFICATE', 105, y, {align:'center'});
   y += DOUBLE_LINE_HEIGHT;
 
-  // The text below this heading uses 1.25 line spacing (tighter than the
-  // 1.5 used elsewhere in the document).
-  const LINE_HEIGHT_125 = RUNNING * 1.25 * 0.3528;
+  doc.setFont('times','normal'); doc.setFontSize(RUNNING);
+  const certifySegments = [
+    {text:'This is to certify that', bold:false},
+    {text:examinerName, bold:true},
+    {text:'Designation :', bold:false},
+    {text:designation, bold:false},
+    {text:'of Institute :', bold:false},
+    {text:examinerInstitute, bold:true},
+    {text:'Instt.code number', bold:false},
+    {text:examinerCode, bold:true}
+  ];
+  const certifyWrapped = wrapMixedWords(certifySegments, PARA_WIDTH);
+  ensureSpace(certifyWrapped.length*LINE_HEIGHT + 6);
+  drawJustifiedLines(certifyWrapped, LEFT, y, PARA_WIDTH, LINE_HEIGHT);
+  y += certifyWrapped.length*LINE_HEIGHT;
 
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
-  const certifyParagraph = `This is to certify that  ${examinerName}   Designation :  ${designation}   of Institute :  ${examinerInstitute}   Instt.code number  ${examinerCode}`;
-  const certifyLines = doc.splitTextToSize(certifyParagraph, PARA_WIDTH);
-  ensureSpace(certifyLines.length*LINE_HEIGHT_125 + 6);
-  doc.text(certifyParagraph, LEFT, y, {maxWidth: PARA_WIDTH, align: 'justify'});
-  y += certifyLines.length*LINE_HEIGHT_125;
-
-  doc.setFont('times','normal'); doc.setFontSize(RUNNING);
-  const dutyParagraph = `has attended this office in respect of official assignment of MSBTE as per MSBTE / RBTE / Polytechnic office order no.  ${orderNo}  Dated  ${formatDate(orderDate)}  and worked as external examiner from  ${formatTime(fromTime)}  of date  ${formatDate(fromDate)}  To  ${formatTime(toTime)}  of date  ${formatDate(toDate)}`;
-  const dutyLines = doc.splitTextToSize(dutyParagraph, PARA_WIDTH);
-  ensureSpace(dutyLines.length*LINE_HEIGHT_125 + 6);
-  doc.setFont('times','normal'); doc.setFontSize(RUNNING);
-  doc.text(dutyParagraph, LEFT, y, {maxWidth: PARA_WIDTH, align: 'justify'});
-  y += dutyLines.length*LINE_HEIGHT_125;
+  const dutySegments = [
+    {text:'has attended this office in respect of official assignment of MSBTE as per MSBTE / RBTE / Polytechnic office order no.', bold:false},
+    {text:orderNo, bold:true},
+    {text:'Dated', bold:false},
+    {text:formatDate(orderDate), bold:true},
+    {text:'and worked as external examiner from', bold:false},
+    {text:formatTime(fromTime), bold:false},
+    {text:'of date', bold:false},
+    {text:formatDate(fromDate), bold:false},
+    {text:'To', bold:false},
+    {text:formatTime(toTime), bold:false},
+    {text:'of date', bold:false},
+    {text:formatDate(toDate), bold:false}
+  ];
+  const dutyWrapped = wrapMixedWords(dutySegments, PARA_WIDTH);
+  ensureSpace(dutyWrapped.length*LINE_HEIGHT + 6);
+  drawJustifiedLines(dutyWrapped, LEFT, y, PARA_WIDTH, LINE_HEIGHT);
+  y += dutyWrapped.length*LINE_HEIGHT;
 
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   ensureSpace(14);
   writeField('Place :', place, LEFT, y);
-  y += LINE_HEIGHT_125;
+  y += LINE_HEIGHT;
   writeField('Date :', formatDate(date), LEFT, y);
-  y += LINE_HEIGHT_125;
+  y += LINE_HEIGHT;
 
   // The closing signature block must never be split or clipped — if there
   // isn't room for both lines above the bottom margin, move it to a new page.
   ensureSpace(12);
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   doc.text('Officer-in-charge / Head of the Institute', RIGHT, y, {align:'right'});
-  y += LINE_HEIGHT_125;
+  y += LINE_HEIGHT;
   doc.text('(Signature and seal of Institut)', RIGHT, y, {align:'right'});
 
   doc.save(`Duty_Certificate_Form14_${examinerName.replace(/\s+/g,'_')}.pdf`);
