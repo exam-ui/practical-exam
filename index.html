@@ -315,11 +315,13 @@ function doGet(e) {
       const ex = sheetToObjects_(getSheet_('Examiners', ['Name', 'Designation', 'InstituteName', 'InstituteCode']));
       const su = sheetToObjects_(getSheet_('Subjects', ['Subject', 'Course', 'Candidates']));
       const co = sheetToObjects_(getSheet_('CoExaminers', ['Name']));
+      const ord = sheetToObjects_(getSheet_('OrderNumbers', ['OrderNo']));
       return jsonOut_({
         ok: true,
         examiners: ex.map(function (r) { return { name: r.Name || '', designation: r.Designation || '', instituteName: r.InstituteName || '', instituteCode: r.InstituteCode || '' }; }),
         subjects: su.map(function (r) { return { subject: r.Subject || '', course: r.Course || '', candidates: r.Candidates || '' }; }),
-        coExaminers: co.map(function (r) { return { name: r.Name || '' }; })
+        coExaminers: co.map(function (r) { return { name: r.Name || '' }; }),
+        orderNumbers: ord.map(function (r) { return { orderNo: r.OrderNo || '' }; })
       });
     }
 
@@ -400,6 +402,8 @@ function doPost(e) {
         (body.subjects || []).map(function (x) { return [x.subject || '', x.course || '', x.candidates || '']; }));
       write('CoExaminers', ['Name'],
         (body.coExaminers || []).map(function (x) { return [x.name || '']; }));
+      write('OrderNumbers', ['OrderNo'],
+        (body.orderNumbers || []).map(function (x) { return [x.orderNo || '']; }));
       return jsonOut_({ ok: true });
     }
 
@@ -483,12 +487,13 @@ function doPost(e) {
       </div>
 
       <div class="upload-box" style="border-color:var(--purple);">
-        <h4>Exam Data — Examiners, Subjects &amp; Co-Examiners (one Excel file)</h4>
+        <h4>Exam Data — Examiners, Subjects, Co-Examiners &amp; Office Order Numbers (one Excel file)</h4>
         <p class="hint">
-          Upload a single .xlsx workbook with <b>3 sheets</b>:<br>
+          Upload a single .xlsx workbook with <b>up to 4 sheets</b> (add whichever ones you need):<br>
           • <b>Examiners</b> — columns: Name, Designation, InstituteName, InstituteCode<br>
           • <b>Subjects</b> — columns: Subject, Course, Candidates<br>
-          • <b>CoExaminers</b> — columns: Name
+          • <b>CoExaminers</b> — columns: Name<br>
+          • <b>OrderNumbers</b> — columns: OrderNo
         </p>
         <input type="file" id="file-examdata" accept=".xlsx,.xls">
         <button class="btn btn-purple" onclick="uploadExamData()">Upload / Replace</button>
@@ -572,6 +577,10 @@ function doPost(e) {
 
       <h3 style="font-family:'Segoe UI',system-ui,sans-serif;margin:24px 0 8px;color:var(--maroon);">Format of Duty Certificate (included on the same page)</h3>
       <div class="form-grid">
+        <div class="field full quickfill">
+          <label>Select Office Order No. (optional quick-fill)</label>
+          <select id="d-orderNoSelect" onchange="fillOrderNo(this.value)"><option value="">— choose from admin list, or type manually below —</option></select>
+        </div>
         <div class="field">
           <label>MSBTE / Polytechnic Office Order No.</label>
           <input id="d-orderNo" placeholder="e.g. MSBTE/2026/1234">
@@ -701,6 +710,7 @@ async function openDuty(){
   showScreen('screen-duty');
   await loadExamData();
   populateExaminerSelect();
+  populateOrderNoSelect();
   if(document.getElementById('subject-rows').children.length===0) addSubjectRow(true);
   prefillShared('duty');
 }
@@ -838,7 +848,7 @@ async function changePasscode(){
         (Execute as: Me, Who has access: Anyone).
      3. Copy the resulting URL (ends in /exec) and paste it below.
 ------------------------------------------------------- */
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby7kbOhc0NdgQgSyIJ-y720xdzEXg2v3HW2xKVlEqLGkIqXxyKUxinqStNaFZ92630inw/exec'; // <-- paste your Apps Script Web App URL here, then re-save/redistribute this file
+const GOOGLE_SCRIPT_URL = ''; // <-- paste your Apps Script Web App URL here, then re-save/redistribute this file
 
 let lastStorageError = null;
 
@@ -1059,15 +1069,15 @@ async function deleteTimetable(id){ await deleteNamedList(id, renderTimetableAdm
 const renderTimetableAdmin = renderNamedListAdmin('timetable', 'timetable-lists-admin', 'replaceTimetableFile', 'deleteTimetable');
 
 
-/* ---------- exam data (examiners / subjects / co-examiners) ---------- */
-let examData = { examiners:[], subjects:[], coExaminers:[] };
+/* ---------- exam data (examiners / subjects / co-examiners / order numbers) ---------- */
+let examData = { examiners:[], subjects:[], coExaminers:[], orderNumbers:[] };
 
 async function loadExamData(){
   const res = await apiGet('getExamData');
   if(res && res.ok){
-    examData = { examiners: res.examiners||[], subjects: res.subjects||[], coExaminers: res.coExaminers||[] };
+    examData = { examiners: res.examiners||[], subjects: res.subjects||[], coExaminers: res.coExaminers||[], orderNumbers: res.orderNumbers||[] };
   } else {
-    examData = { examiners:[], subjects:[], coExaminers:[] };
+    examData = { examiners:[], subjects:[], coExaminers:[], orderNumbers:[] };
   }
 }
 
@@ -1085,9 +1095,10 @@ async function uploadExamData(){
     const examinersSheetName = findSheet('Examiners');
     const subjectsSheetName = findSheet('Subjects');
     const coexaminersSheetName = findSheet('CoExaminers');
+    const orderNumbersSheetName = findSheet('OrderNumbers');
 
-    if(!examinersSheetName && !subjectsSheetName && !coexaminersSheetName){
-      showToast('No matching sheets found — check sheet names: Examiners, Subjects, CoExaminers');
+    if(!examinersSheetName && !subjectsSheetName && !coexaminersSheetName && !orderNumbersSheetName){
+      showToast('No matching sheets found — check sheet names: Examiners, Subjects, CoExaminers, OrderNumbers');
       return;
     }
 
@@ -1108,9 +1119,13 @@ async function uploadExamData(){
       name: String(r.Name||'').trim()
     })).filter(r=>r.name) : [];
 
-    const res = await apiPost('saveExamData', { examiners, subjects, coExaminers });
+    const orderNumbers = orderNumbersSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[orderNumbersSheetName], {defval:''}).map(r=>({
+      orderNo: String(r.OrderNo||'').trim()
+    })).filter(r=>r.orderNo) : [];
+
+    const res = await apiPost('saveExamData', { examiners, subjects, coExaminers, orderNumbers });
     if(!res){ showToast('Upload failed: ' + (lastStorageError || 'unknown error')); return; }
-    examData = { examiners, subjects, coExaminers };
+    examData = { examiners, subjects, coExaminers, orderNumbers };
     showToast('Exam data saved to the Google Sheet');
     input.value = '';
     refreshAdminStatuses();
@@ -1138,7 +1153,7 @@ async function refreshAdminStatuses(){
   if(examEl){
     const res = await apiGet('getExamData');
     if(res && res.ok){
-      examEl.innerHTML = `${res.examiners.length} examiners, ${res.subjects.length} subjects, ${res.coExaminers.length} co-examiners currently in the Google Sheet.`;
+      examEl.innerHTML = `${res.examiners.length} examiners, ${res.subjects.length} subjects, ${res.coExaminers.length} co-examiners, ${(res.orderNumbers||[]).length} office order numbers currently in the Google Sheet.`;
     } else {
       examEl.textContent = backendReady() ? ('Could not load: ' + (lastStorageError||'unknown error')) : 'Backend not configured yet.';
     }
@@ -1258,6 +1273,25 @@ function subjectListEmptyMessage(){
 }
 function coExaminerListEmptyMessage(){
   return backendReady() ? 'No co-examiners uploaded yet — type manually below' : 'Google Sheet backend not configured yet — type manually below';
+}
+function orderNoListEmptyMessage(){
+  return backendReady() ? 'No office order numbers uploaded yet — type manually below' : 'Google Sheet backend not configured yet — type manually below';
+}
+function populateOrderNoSelect(){
+  const sel = document.getElementById('d-orderNoSelect');
+  if(!sel) return;
+  if(!examData.orderNumbers || examData.orderNumbers.length===0){
+    sel.innerHTML = `<option value="">${orderNoListEmptyMessage()}</option>`;
+    return;
+  }
+  const opts = examData.orderNumbers.map((o,i)=>`<option value="${i}">${escapeHtml(o.orderNo)}</option>`).join('');
+  sel.innerHTML = `<option value="">— choose from admin list, or type manually below —</option>` + opts;
+}
+function fillOrderNo(idx){
+  if(idx===''){ return; }
+  const o = examData.orderNumbers[idx];
+  if(!o) return;
+  document.getElementById('d-orderNo').value = o.orderNo || '';
 }
 function fillExaminerFields(idx){
   if(idx===''){ return; }
@@ -1514,12 +1548,15 @@ function generateDutyPDF(){
   });
   y = doc.lastAutoTable.finalY + 14;
 
-  ensureSpace(18);
+  const DOUBLE_LINE_HEIGHT = RUNNING * 2 * 0.3528; // double line spacing, in mm
+  const STAMP_SPACE = 22; // blank room for the institute's physical stamp/seal
+
+  ensureSpace(18 + STAMP_SPACE);
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   doc.text('Officer-in-charge / Head of the Institute', RIGHT, y, {align:'right'});
   y += LINE_HEIGHT;
   doc.text('(Signature and seal of Institut)', RIGHT, y, {align:'right'});
-  y += LINE_HEIGHT;
+  y += STAMP_SPACE; // blank space reserved for the physical stamp/seal
 
   // ---- Dashed divider ----
   ensureSpace(12);
@@ -1527,13 +1564,13 @@ function generateDutyPDF(){
   doc.setDrawColor(0,0,0);
   doc.line(LEFT, y, RIGHT, y);
   doc.setLineDashPattern([], 0);
-  y += LINE_HEIGHT;
+  y += DOUBLE_LINE_HEIGHT;
 
   // ---- Part 2: Format of Duty Certificate ----
   ensureSpace(18);
   doc.setFont('times','bold'); doc.setFontSize(RUNNING);
   doc.text('FORMAT OF DUTY CERTIFICATE', 105, y, {align:'center'});
-  y += LINE_HEIGHT;
+  y += DOUBLE_LINE_HEIGHT;
 
   doc.setFont('times','normal'); doc.setFontSize(RUNNING);
   const certifyParagraph = `This is to certify that  ${examinerName}   Designation :  ${designation}   of Institute :  ${examinerInstitute}   Instt.code number  ${examinerCode}`;
