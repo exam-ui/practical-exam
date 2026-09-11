@@ -1869,11 +1869,11 @@ function generateDutyPDF(){
 function buildOrderLetterHTML(f){
   const rowsHtml = f.rows.map((r,i)=>`
     <tr>
-      <td style="border:1px solid #000;padding:7px;text-align:center;">${toDevanagariDigits(i+1)}</td>
+      <td style="border:1px solid #000;padding:7px;text-align:center;">${i+1}</td>
       <td style="border:1px solid #000;padding:7px;text-align:center;">${escapeHtml(r.dateTime)||''}</td>
       <td style="border:1px solid #000;padding:7px;text-align:center;">${escapeHtml(r.session)||''}</td>
       <td style="border:1px solid #000;padding:7px;text-align:center;">${escapeHtml(r.subject)||''}</td>
-      <td style="border:1px solid #000;padding:7px;text-align:center;">${r.totalStudents ? toDevanagariDigits(r.totalStudents) : ''}</td>
+      <td style="border:1px solid #000;padding:7px;text-align:center;">${r.totalStudents ? escapeHtml(r.totalStudents) : ''}</td>
       <td style="border:1px solid #000;padding:7px;text-align:center;">${escapeHtml(r.coExaminer)||''}</td>
     </tr>`).join('');
 
