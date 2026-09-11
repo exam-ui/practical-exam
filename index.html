@@ -1598,7 +1598,7 @@ function generateDutyPDF(){
   const examinerName = document.getElementById('d-examinerName').value.trim();
   const examinerInstitute = document.getElementById('d-examinerInstitute').value.trim();
   const date = document.getElementById('d-date').value;
-  const subjectRows = Array.from(document.querySelectorAll('.subject-row'));
+  const subjectRows = Array.from(document.querySelectorAll('#subject-rows .subject-row'));
   const subjects = subjectRows.map(r=>({
     subject: r.querySelector('.s-subject').value.trim(),
     course: r.querySelector('.s-course').value.trim(),
