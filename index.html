@@ -1492,8 +1492,8 @@ function addOrderRow(){
   wrap.className = 'subject-row';
   wrap.id = 'orow-'+idx;
   wrap.innerHTML = `
-    <div class="mini"><label>Date / Time (दिनांक / वेळ)</label><input class="o-datetime" placeholder="e.g. 12/01/2027, 10:00 AM"></div>
-    <div class="mini"><label>Session (सत्र)</label><input class="o-session" placeholder="e.g. Session 1"></div>
+    <div class="mini"><label>Date / Time</label><input class="o-datetime" placeholder="e.g. 12/01/2027, 10:00 AM"></div>
+    <div class="mini"><label>Semester</label><input class="o-session" placeholder="e.g. Session 1"></div>
     <div class="mini">
       <label>Quick-fill Subject</label>
       <select class="o-subject-select" onchange="fillOrderSubjectRow(this)">${buildSubjectOptionsHTML()}</select>
