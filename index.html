@@ -2038,7 +2038,7 @@ async function generateAttendancePDF(){
   y += 10;
 
   doc.setFont('times','normal'); doc.setFontSize(11);
-  const examLine = session==='Winter' ? `Winter ${year}  /  Summer ______` : `Winter ______  /  Summer ${year}`;
+  const examLine = session==='Winter' ? `Winter ${year}` : `Winter ______  /  Summer ${year}`;
   doc.text(`Examination :  ${examLine}`, 15, y); y += 8;
   doc.text('Name of Institute :  Dr. Panjabrao Deshmukh Polytechnic, Amravati', 15, y); y += 8;
   doc.text(`Course :  ${course}`, 15, y);
