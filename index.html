@@ -1830,7 +1830,8 @@ function generateDutyPDF(){
   const dutySegments = [
     {text:'has attended this office in respect of official assignment of MSBTE as per MSBTE / RBTE / Polytechnic office order no.', bold:false},
     {text:orderNo, bold:true},
-
+    {text:'Dated', bold:false},
+    {text:formatDate(orderDate), bold:true},
     
     {text:'and worked as external examiner from', bold:false},
     {text:formatTime(fromTime), bold:false},
