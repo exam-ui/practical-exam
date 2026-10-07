@@ -2042,10 +2042,10 @@ async function generateAttendancePDF(){
   doc.text(`Examination :  ${examLine}`, 15, y); y += 8;
   doc.text('Name of Institute :  Dr. Panjabrao Deshmukh Polytechnic, Amravati', 15, y); y += 8;
   doc.text(`Course :  ${course}`, 15, y);
-  doc.text(`Institute Code No. :  ${instituteCode}`, 120, y); y += 8;
+  doc.text(`Institute Code No. :  ${instituteCode}`, 140, y); y += 8;
   doc.text(`Name of Subject :  ${subject}`, 15, y); y += 8;
   doc.text(`Date :  ${formatDate(date)}`, 15, y);
-  doc.text(`Time :  ${formatTime(time)}`, 120, y); y += 10;
+  doc.text(`Time :  ${formatTime(time)}`, 140, y); y += 10;
 
   doc.autoTable({
     startY: y,
@@ -2065,8 +2065,8 @@ async function generateAttendancePDF(){
     ],
     body: [[ totalSeats, '--', '--', absentSeatNumbers, totalAbsent, totalPresent ]],
     theme:'grid',
-    styles:{font:'times', fontSize:11, halign:'center', valign:'middle', lineColor:[60,60,60], lineWidth:0.2},
-    headStyles:{fillColor:[235,228,210], textColor:30, fontStyle:'bold', fontSize:11},
+    styles:{font:'times', fontSize:12, halign:'center', valign:'middle', lineColor:[60,60,60], lineWidth:0.2},
+    headStyles:{fillColor:[235,228,210], textColor:30, fontStyle:'bold', fontSize:10},
     margin:{left:15, right:15}
   });
 
