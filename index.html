@@ -2065,13 +2065,13 @@ async function generateAttendancePDF(){
     ],
     body: [[ totalSeats, '--', '--', absentSeatNumbers, totalAbsent, totalPresent ]],
     theme:'grid',
-    styles:{font:'times', fontSize:12, halign:'center', valign:'middle', lineColor:[60,60,60], lineWidth:0.2},
-    headStyles:{fillColor:[235,228,210], textColor:30, fontStyle:'bold', fontSize:12},
+    styles:{font:'times', fontSize:11, halign:'center', valign:'middle', lineColor:[60,60,60], lineWidth:0.2},
+    headStyles:{fillColor:[235,228,210], textColor:30, fontStyle:'bold', fontSize:11},
     margin:{left:15, right:15}
   });
 
   y = doc.lastAutoTable.finalY + 26;
-  doc.setFontSize(10.5);
+  doc.setFontSize(11);
   doc.text('Signature of Internal Examiner : ________________________', 15, y);
   doc.text('Officer In-charge : ________________________', 130, y);
 
